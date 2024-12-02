@@ -2,6 +2,7 @@ use adv_code_2024::*;
 use anyhow::*;
 use code_timing_macros::time_snippet;
 use const_format::concatcp;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -25,8 +26,8 @@ fn main() -> Result<()> {
     //region Part 1
     println!("=== Part 1 ===");
 
-    fn part1<R: BufRead + Debug>(reader: R) -> Result<i32> {
-        let (mut left, mut right): (Vec<i32>, Vec<i32>) = reader
+    fn parse<R: BufRead>(reader: R) -> (Vec<i32>, Vec<i32>) {
+        reader
             .lines()
             .flatten()
             .map(|line| {
@@ -37,14 +38,16 @@ fn main() -> Result<()> {
                     parts.next().unwrap().parse::<i32>().unwrap(),
                 )
             })
-            .unzip();
+            .unzip()
+    }
+
+    fn part1<R: BufRead>(reader: R) -> Result<i32> {
+        let (mut left, mut right) = parse(reader);
 
         left.sort_unstable();
         right.sort_unstable();
 
-        let answer = zip(left, right)
-            .map(|(l, r)| (l - r).abs())
-            .sum::<i32>();
+        let answer = zip(left, right).map(|(l, r)| (l - r).abs()).sum::<i32>();
 
         Ok(answer)
     }
@@ -58,17 +61,29 @@ fn main() -> Result<()> {
     //endregion
 
     //region Part 2
-    // println!("\n=== Part 2 ===");
-    //
-    // fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    //     Ok(0)
-    // }
-    //
-    // assert_eq!(0, part2(BufReader::new(TEST.as_bytes()))?);
-    //
-    // let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    // let result = time_snippet!(part2(input_file)?);
-    // println!("Result = {}", result);
+    println!("\n=== Part 2 ===");
+
+    fn part2<R: BufRead>(reader: R) -> Result<i32> {
+        let (left, right) = parse(reader);
+        let frequencies = right.iter().fold(HashMap::new(), |mut map, val| {
+            map.entry(val).and_modify(|e| *e += 1).or_insert(1);
+
+            map
+        });
+
+        let answer = left
+            .iter()
+            .map(|val| frequencies.get(val).unwrap_or(&0) * val)
+            .sum::<i32>();
+
+        Ok(answer)
+    }
+
+    assert_eq!(31, part2(BufReader::new(TEST.as_bytes()))?);
+
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
